@@ -1,6 +1,8 @@
 <?php
 require 'config/database.php';
 
+$response = ['success' => false, 'message' => ''];
+
 // get form data if submit button was clicked
 if (isset($_POST['submit'])) {
     $firstname = filter_var($_POST['firstname'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -14,21 +16,21 @@ if (isset($_POST['submit'])) {
 
     // validate input values
     if (!$firstname) {
-        $_SESSION['add-user'] = "Please enter your First Name";
+        $response['message'] = "Please enter your First Name";
     } elseif (!$lastname) {
-        $_SESSION['add-user'] = "Please enter your Last Name";
+        $response['message'] = "Please enter your Last Name";
     } elseif (!$username) {
-        $_SESSION['add-user'] = "Please enter your Username";
+        $response['message'] = "Please enter your Username";
     } elseif (!$email) {
-        $_SESSION['add-user'] = "Please enter your a valid email";
+        $response['message'] = "Please enter a valid email";
     } elseif (strlen($createpassword) < 8 || strlen($confirmpassword) < 8) {
-        $_SESSION['add-user'] = "Password should be 8+ characters";
+        $response['message'] = "Password should be 8+ characters";
     } elseif (!$avatar['name']) {
-        $_SESSION['add-user'] = "Please add avatar";
+        $response['message'] = "Please add avatar";
     } else {
         // check if passwords don't match
         if ($createpassword !== $confirmpassword) {
-            $_SESSION['signup'] = "Passwords do not match";
+            $response['message'] = "Passwords do not match";
         } else {
             // hash password
             $hashed_password = password_hash($createpassword, PASSWORD_DEFAULT);
@@ -37,7 +39,7 @@ if (isset($_POST['submit'])) {
             $user_check_query = "SELECT * FROM users WHERE username='$username' OR email='$email'";
             $user_check_result = mysqli_query($connection, $user_check_query);
             if (mysqli_num_rows($user_check_result) > 0) {
-                $_SESSION['add-user'] = "Username or Email already exist";
+                $response['message'] = "Username or Email already exist";
             } else {
                 // WORK ON AVATAR
                 // rename avatar
@@ -56,20 +58,22 @@ if (isset($_POST['submit'])) {
                         // upload avatar
                         move_uploaded_file($avatar_tmp_name, $avatar_destination_path);
                     } else {
-                        $_SESSION['add-user'] = "File size too big. Should be less than 1mb";
+                        $response['message'] = "File size too big. Should be less than 1mb";
+                        echo json_encode($response);
+                        die();
                     }
                 } else {
-                    $_SESSION['add-user'] = "File should be png, jpg, or jpeg";
+                    $response['message'] = "File should be png, jpg, or jpeg";
+                    echo json_encode($response);
+                    die();
                 }
             }
         }
     }
 
-    // redirect back to add-user pag eif there was any problem
-    if (isset($_SESSION['add-user'])) {
-        // pass form data back to sigup page
-        $_SESSION['add-user-data'] = $_POST;
-        header('location: ' . ROOT_URL . '/admin/add-user.php');
+    // redirect back to add-user page if there was any problem
+    if ($response['message']) {
+        echo json_encode($response);
         die();
     } else {
         // insert new user into users table
@@ -77,14 +81,19 @@ if (isset($_POST['submit'])) {
         $insert_user_result = mysqli_query($connection, $insert_user_query);
 
         if (!mysqli_errno($connection)) {
-            // redirect to login page with success message
-            $_SESSION['add-user-success'] = "New user $firstname $lastname added successfully.";
-            header('location: ' . ROOT_URL . 'admin/manage-users.php');
+            $response['success'] = true;
+            $response['message'] = "New user $firstname $lastname added successfully.";
+            echo json_encode($response);
+            die();
+        } else {
+            $response['message'] = "Failed to add new user";
+            echo json_encode($response);
             die();
         }
     }
 } else {
-    // if button wasn't clicked, bounce back to signup page
-    header('location: ' . ROOT_URL . 'admin/add-user.php');
+    $response['message'] = "Invalid request";
+    echo json_encode($response);
     die();
 }
+?>

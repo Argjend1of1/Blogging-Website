@@ -1,6 +1,8 @@
 <?php
 require 'config/database.php';
 
+$response = ['success' => false, 'message' => ''];
+
 if (isset($_POST['submit'])) {
     $id = filter_var($_POST['id'], FILTER_SANITIZE_NUMBER_INT);
     $title = filter_var($_POST['title'], FILTER_SANITIZE_FULL_SPECIAL_CHARS);
@@ -8,18 +10,24 @@ if (isset($_POST['submit'])) {
 
     // validate input
     if (!$title || !$description) {
-        $_SESSION['edit-category'] = "Invalid form input on edit category page";
+        $response['message'] = "Invalid form input on edit category page";
     } else {
         $query = "UPDATE categories SET title='$title', description='$description' WHERE id=$id LIMIT 1";
         $result = mysqli_query($connection, $query);
 
         if (mysqli_errno($connection)) {
-            $_SESSION['edit-category'] = "Couldn't update category";
+            $response['message'] = "Couldn't update category";
         } else {
-            $_SESSION['edit-category-success'] = "Category $title updated successfully";
+            $response['success'] = true;
+            $response['message'] = "Category $title updated successfully";
         }
     }
-}
 
-header('location: ' . ROOT_URL . 'admin/manage-categories.php');
-die();
+    echo json_encode($response);
+    die();
+} else {
+    $response['message'] = "Invalid request";
+    echo json_encode($response);
+    die();
+}
+?>

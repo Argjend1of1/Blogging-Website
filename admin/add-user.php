@@ -13,22 +13,19 @@ $confirmpassword = $_SESSION['add-user-data']['confirmpassword'] ?? null;
 unset($_SESSION['add-user-data']);
 ?>
 
-
-
 <section class="form__section">
     <div class="container form__section-container">
         <h2>Add User</h2>
         <?php if (isset($_SESSION['add-user'])) : ?>
-            <div class="alert__message error">
+            <div id="alert-message" class="alert__message error">
                 <p>
                     <?= $_SESSION['add-user'];
                     unset($_SESSION['add-user']);
                     ?>
                 </p>
             </div>
-
         <?php endif ?>
-        <form action="<?= ROOT_URL ?>admin/add-user-logic.php" enctype="multipart/form-data" method="POST">
+        <form id="add-user-form" enctype="multipart/form-data" method="POST">
             <input type="text" name="firstname" value="<?= $firstname ?>" placeholder="First Name">
             <input type="text" name="lastname" value="<?= $lastname ?>" placeholder="Last Name">
             <input type="text" name="username" value="<?= $username ?>" placeholder="Username">
@@ -48,7 +45,55 @@ unset($_SESSION['add-user-data']);
     </div>
 </section>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('add-user-form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
 
+            const formData = new FormData(form);
+            formData.append('submit', 'submit'); // Explicitly add the submit field
+
+            fetch('<?= ROOT_URL ?>admin/add-user-logic.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response received:', data); // Debugging log
+                let alertMessage = document.getElementById('alert-message');
+                if (!alertMessage) {
+                    alertMessage = document.createElement('div');
+                    alertMessage.id = 'alert-message';
+                    alertMessage.className = 'alert__message';
+                    const container = document.querySelector('.form__section-container');
+                    container.insertBefore(alertMessage, container.firstChild);
+                }
+
+                alertMessage.innerHTML = `<p>${data.message}</p>`;
+
+                if (data.success) {
+                    alertMessage.classList.remove('error');
+                    alertMessage.classList.add('success');
+                    setTimeout(() => {
+                        window.location.href = '<?= ROOT_URL ?>admin/manage-users.php';
+                    }, 2000);
+                } else {
+                    alertMessage.classList.remove('success');
+                    alertMessage.classList.add('error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    });
+</script>
 
 <?php
 include '../partials/footer.php';

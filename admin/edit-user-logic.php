@@ -1,6 +1,8 @@
 <?php
 require 'config/database.php';
 
+$response = ['success' => false, 'message' => ''];
+
 if (isset($_POST['submit'])) {
     // get updated form data
     $id = filter_var($_POST['id'], FILTER_SANITIZE_NUMBER_INT);
@@ -10,19 +12,25 @@ if (isset($_POST['submit'])) {
 
     // check for valid input
     if (!$firstname || !$lastname) {
-        $_SESSION['edit-user'] = "Invalid form input on edit page.";
+        $response['message'] = "Invalid form input on edit page.";
     } else {
         // update user
         $query = "UPDATE users SET firstname='$firstname', lastname='$lastname', is_admin=$is_admin WHERE id=$id LIMIT 1";
         $result = mysqli_query($connection, $query);
 
         if (mysqli_errno($connection)) {
-            $_SESSION['edit-user'] = "Failed to update user.";
+            $response['message'] = "Failed to update user.";
         } else {
-            $_SESSION['edit-user-success'] = "User $firstname $lastname updated successfully";
+            $response['success'] = true;
+            $response['message'] = "User $firstname $lastname updated successfully";
         }
     }
-}
 
-header('location: ' . ROOT_URL . 'admin/manage-users.php');
-die();
+    echo json_encode($response);
+    die();
+} else {
+    $response['message'] = "Invalid request";
+    echo json_encode($response);
+    die();
+}
+?>
